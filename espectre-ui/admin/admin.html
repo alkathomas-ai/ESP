@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESPectre Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+    :root { --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a; --text: #e2e8f0; --text2: #94a3b8; --accent: #6366f1; --green: #22c55e; --red: #ef4444; --amber: #f59e0b; --radius: 8px }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; min-height: 100vh }
+    #app { max-width: 860px; margin: 0 auto; padding: 32px 16px }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 10px }
+    h1 span.logo { color: var(--accent) }
+    h2 { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px }
+    .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px }
+    label { font-size: 12px; color: var(--text2) }
+    input, select { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 10px; font-size: 13px; width: 100%; outline: none }
+    input:focus, select:focus { border-color: var(--accent) }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity .15s }
+    .btn:disabled { opacity: .45; cursor: not-allowed }
+    .btn-primary  { background: var(--accent); color: #fff }
+    .btn-secondary{ background: var(--border); color: var(--text) }
+    .btn-danger   { background: var(--red); color: #fff }
+    .btn-sm       { padding: 5px 10px; font-size: 12px }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600 }
+    .badge-active { background: #14532d; color: var(--green) }
+    .badge-idle   { background: #1e293b; color: var(--text2) }
+    .msg { font-size: 12px; padding: 8px 12px; border-radius: 6px; margin-top: 10px }
+    .msg-ok  { background: #14532d; color: var(--green) }
+    .msg-err { background: #450a0a; color: var(--red) }
+    .device-list { display: flex; flex-direction: column; gap: 8px }
+    .device-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px }
+    .device-info { flex: 1; min-width: 0 }
+    .device-name { font-weight: 600; font-size: 13px }
+    .device-ep   { font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+    .sep { border: none; border-top: 1px solid var(--border); margin: 20px 0 }
+    #login-section, #admin-section { display: none }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle }
+    @keyframes spin { to { transform: rotate(360deg) } }
+    pre { font-size: 11px; color: var(--text2); white-space: pre-wrap; word-break: break-all; background: var(--bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border); max-height: 200px; overflow: auto }
+  </style>
+</head>
+<body>
+  <a href="/" style="color:var(--text2);text-decoration:none;font-size:13px;font-weight:400;margin-right:8px" title="Back to dashboard">← Dashboard</a>
+<div id="app">
+  <h1>
+    <span class="logo">◈</span> ESPectre Admin
+  </h1>
+
+  <!-- Login -->
+  <div id="login-section" class="card">
+    <h2>Administrator Login</h2>
+    <div class="field"><label>Password</label><input id="pw" type="password" placeholder="Admin password" /></div>
+    <div class="row">
+      <button class="btn btn-primary" id="login-btn">Sign in</button>
+    </div>
+    <div id="login-msg"></div>
+  </div>
+
+  <!-- Admin panel -->
+  <div id="admin-section">
+
+    <!-- Active device status -->
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <h2 style="margin:0">Active Device</h2>
+        <button class="btn btn-secondary btn-sm" id="logout-btn">Sign out</button>
+      </div>
+      <div id="active-info" style="font-size:13px;color:var(--text2)">Loading…</div>
+    </div>
+
+    <!-- Registered devices -->
+    <div class="card">
+      <h2>Registered Devices</h2>
+      <div id="device-list" class="device-list"><div style="color:var(--text2);font-size:12px">Loading…</div></div>
+      <hr class="sep" />
+      <h2>Add Device by Endpoint</h2>
+      <div class="field"><label>Endpoint (e.g. http://192.168.1.50:62587)</label><input id="ep-input" placeholder="http://host:port" /></div>
+      <div class="row">
+        <button class="btn btn-primary" id="add-ep-btn">Test &amp; Add</button>
+        <span id="add-ep-spinner" style="display:none" class="spinner"></span>
+      </div>
+      <div id="add-ep-msg"></div>
+    </div>
+
+    <!-- mDNS discovery -->
+    <div class="card">
+      <h2>Discover Devices (mDNS)</h2>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn btn-secondary" id="discover-btn">Scan Network</button>
+        <span id="discover-spinner" style="display:none" class="spinner"></span>
+      </div>
+      <div id="discover-results"></div>
+    </div>
+
+    <!-- Improv Serial provisioning -->
+    <div class="card">
+      <h2>Wi-Fi Provisioning (Improv Serial)</h2>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn btn-secondary" id="scan-serial-btn">Scan USB Ports</button>
+        <span id="serial-spinner" style="display:none" class="spinner"></span>
+      </div>
+      <div id="serial-ports" style="margin-bottom:12px"></div>
+      <div class="field"><label>USB Port</label><select id="port-select"><option value="">— select port —</option></select></div>
+      <div class="field"><label>Wi-Fi SSID</label><input id="prov-ssid" placeholder="Network name" /></div>
+      <div class="field"><label>Wi-Fi Password</label><input id="prov-pass" type="password" placeholder="Password (never stored)" /></div>
+      <div class="row">
+        <button class="btn btn-primary" id="provision-btn">Provision Device</button>
+        <span id="prov-spinner" style="display:none" class="spinner"></span>
+      </div>
+      <div id="prov-msg"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let csrf = null
+
+async function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (csrf && method !== 'GET') headers['X-CSRF-Token'] = csrf
+  const r = await fetch('/admin/api' + path, { method, headers, body: body ? JSON.stringify(body) : undefined })
+  const data = await r.json()
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
+  return data
+}
+
+function msg(el, text, ok) {
+  el.className = 'msg ' + (ok ? 'msg-ok' : 'msg-err')
+  el.textContent = text
+}
+
+function spin(id, on) { document.getElementById(id).style.display = on ? 'inline-block' : 'none' }
+
+// ── Session check ─────────────────────────────────────────────────────────────
+async function checkSession() {
+  try {
+    const s = await api('GET', '/auth/session')
+    if (s.authenticated) { csrf = s.csrf; showAdmin() } else { showLogin() }
+  } catch { showLogin() }
+}
+
+function showLogin()  { document.getElementById('login-section').style.display = 'block'; document.getElementById('admin-section').style.display = 'none' }
+function showAdmin()  { document.getElementById('login-section').style.display = 'none';  document.getElementById('admin-section').style.display = 'block'; loadDevices() }
+
+// ── Login / logout ────────────────────────────────────────────────────────────
+document.getElementById('login-btn').onclick = async () => {
+  const pw = document.getElementById('pw').value
+  const el = document.getElementById('login-msg')
+  try {
+    const r = await api('POST', '/auth/login', { password: pw })
+    csrf = r.csrf
+    document.getElementById('pw').value = ''
+    showAdmin()
+  } catch (e) { msg(el, e.message, false) }
+}
+document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-btn').click() })
+
+document.getElementById('logout-btn').onclick = async () => {
+  await api('POST', '/auth/logout').catch(() => {})
+  csrf = null; showLogin()
+}
+
+// ── Device list ───────────────────────────────────────────────────────────────
+async function loadDevices() {
+  try {
+    const { devices, active_id } = await api('GET', '/devices')
+    const el = document.getElementById('device-list')
+    const ai = document.getElementById('active-info')
+    const active = devices.find(d => d.id === active_id)
+    ai.textContent = active ? `${active.name} — ${active.endpoint}` : 'Default (env DEVICE_IP)'
+    if (!devices.length) { el.innerHTML = '<div style="color:var(--text2);font-size:12px">No devices registered yet.</div>'; return }
+    el.innerHTML = devices.map(d => `
+      <div class="device-row">
+        <div class="device-info">
+          <div class="device-name">${esc(d.name)}</div>
+          <div class="device-ep">${esc(d.endpoint)}${d.chip ? ' · ' + esc(d.chip) : ''}</div>
+        </div>
+        <span class="badge ${d.id === active_id ? 'badge-active' : 'badge-idle'}">${d.id === active_id ? '● Active' : 'Idle'}</span>
+        ${d.id !== active_id ? `<button class="btn btn-primary btn-sm" onclick="activateDevice(${d.id})">Activate</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="deleteDevice(${d.id})">✕</button>
+      </div>`).join('')
+  } catch (e) { document.getElementById('device-list').innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>` }
+}
+
+window.activateDevice = async id => {
+  try { await api('POST', `/devices/${id}/activate`); await loadDevices() }
+  catch (e) { alert(e.message) }
+}
+window.deleteDevice = async id => {
+  if (!confirm('Remove this device?')) return
+  try { await api('DELETE', `/devices/${id}`); await loadDevices() }
+  catch (e) { alert(e.message) }
+}
+
+// ── Add by endpoint ───────────────────────────────────────────────────────────
+document.getElementById('add-ep-btn').onclick = async () => {
+  const ep = document.getElementById('ep-input').value.trim()
+  const el = document.getElementById('add-ep-msg')
+  if (!ep) { msg(el, 'Enter an endpoint URL', false); return }
+  spin('add-ep-spinner', true)
+  try {
+    const r = await api('POST', '/devices', { endpoint: ep })
+    msg(el, `Added: ${r.device.name} (${r.device.endpoint})`, true)
+    document.getElementById('ep-input').value = ''
+    await loadDevices()
+  } catch (e) { msg(el, e.message, false) }
+  spin('add-ep-spinner', false)
+}
+
+// ── mDNS discovery ────────────────────────────────────────────────────────────
+document.getElementById('discover-btn').onclick = async () => {
+  const el = document.getElementById('discover-results')
+  spin('discover-spinner', true)
+  el.innerHTML = ''
+  try {
+    const { devices } = await api('GET', '/discover')
+    if (!devices.length) { el.innerHTML = '<div style="color:var(--text2);font-size:12px">No ESPectre devices found on the network.</div>'; spin('discover-spinner', false); return }
+    el.innerHTML = devices.map(d => `
+      <div class="device-row" style="margin-bottom:6px">
+        <div class="device-info">
+          <div class="device-name">${esc(d.name || d.device_id || 'Unknown')}</div>
+          <div class="device-ep">${esc(d.endpoint || d.address || '')}</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="addDiscovered(${JSON.stringify(esc(d.endpoint || '')).replace(/"/g, '&quot;')})">Add</button>
+      </div>`).join('')
+  } catch (e) { el.innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>` }
+  spin('discover-spinner', false)
+}
+
+window.addDiscovered = async ep => {
+  const el = document.getElementById('discover-results')
+  try {
+    await api('POST', '/devices', { endpoint: ep })
+    await loadDevices()
+    el.insertAdjacentHTML('beforeend', `<div class="msg msg-ok">Added ${esc(ep)}</div>`)
+  } catch (e) { el.insertAdjacentHTML('beforeend', `<div class="msg msg-err">${esc(e.message)}</div>`) }
+}
+
+// ── Serial ports ──────────────────────────────────────────────────────────────
+document.getElementById('scan-serial-btn').onclick = async () => {
+  spin('serial-spinner', true)
+  const el = document.getElementById('serial-ports')
+  const sel = document.getElementById('port-select')
+  try {
+    const { ports } = await api('GET', '/serial')
+    sel.innerHTML = '<option value="">— select port —</option>' + ports.map(p =>
+      `<option value="${esc(p.port)}">${esc(p.port)} — ${esc(p.description)}</option>`).join('')
+    el.innerHTML = ports.length ? '' : '<div style="color:var(--text2);font-size:12px">No USB serial ports found.</div>'
+  } catch (e) { el.innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>` }
+  spin('serial-spinner', false)
+}
+
+// ── Provisioning ──────────────────────────────────────────────────────────────
+document.getElementById('provision-btn').onclick = async () => {
+  const port = document.getElementById('port-select').value
+  const ssid = document.getElementById('prov-ssid').value.trim()
+  const pass = document.getElementById('prov-pass').value
+  const el   = document.getElementById('prov-msg')
+  if (!port || !ssid || !pass) { msg(el, 'Select a port and enter SSID + password', false); return }
+  spin('prov-spinner', true)
+  msg(el, 'Provisioning… this may take up to 70 seconds', true)
+  try {
+    const r = await api('POST', '/provision', { port, ssid, password: pass })
+    document.getElementById('prov-pass').value = ''
+    msg(el, `Provisioned! Endpoint: ${r.endpoint}${r.device ? ' — ' + r.device.name : ''}`, true)
+    await loadDevices()
+  } catch (e) { msg(el, e.message, false) }
+  spin('prov-spinner', false)
+}
+
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+
+checkSession()
+</script>
+</body>
+</html>
