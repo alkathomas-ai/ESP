@@ -339,11 +339,9 @@ class PresenceEngine {
     const p95 = sorted[Math.floor(n * 0.95)]
     const p99 = sorted[Math.floor(n * 0.99)]
 
-    // Stability check: coefficient of variation (std/mean) should be low for a stable baseline
-    // Use std/mean as the primary instability signal — robust against MAD edge cases
-    const cv = mean > 0.001 ? std / mean : std
-    const stability = Math.max(0, 1 - Math.min(cv, 1))
-    const valid = stability >= 0.3 && n >= 10
+    // Scores near zero can have high relative variation while remaining quiet.
+    // Assess absolute spread and the upper tail instead of dividing by the mean.
+    const { valid, stability, checks } = assessCalibration({ std, p95, p99 })
 
     const result = {
       valid,
@@ -358,6 +356,7 @@ class PresenceEngine {
       p95: round4(p95),
       p99: round4(p99),
       stability: round4(stability),
+      validation: { version: 2, checks, limits: { ...CALIBRATION_LIMITS } },
       timestamp_ms: nowMs,
       reason: valid ? 'ok' : 'unstable_baseline',
     }
@@ -376,6 +375,22 @@ class PresenceEngine {
   }
 }
 
+// Initial engineering limits for the firmware's 0..1 motion score. These are
+// independent of previously calibrated thresholds, so retries cannot relax them.
+// Validate across more rooms before treating them as universal noise limits.
+const CALIBRATION_LIMITS = Object.freeze({ std: 0.15, p95: 0.40, p99: 0.55 })
+
+function assessCalibration({ std, p95, p99 }) {
+  const checks = {
+    absolute_spread: Number.isFinite(std) && std >= 0 && std <= CALIBRATION_LIMITS.std,
+    quiet_upper_tail: Number.isFinite(p95) && p95 >= 0 && p95 <= CALIBRATION_LIMITS.p95,
+    motion_spikes: Number.isFinite(p99) && p99 >= p95 && p99 <= CALIBRATION_LIMITS.p99,
+  }
+  // Display-only spread score, not a probability or a second acceptance gate.
+  const stability = Number.isFinite(std) ? clamp(1 - std / 0.25, 0, 1) : 0
+  return { valid: Object.values(checks).every(Boolean), stability, checks }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function empty_cal () {
@@ -387,4 +402,4 @@ function round4 (v) { return Math.round(v * 10000) / 10000 }
 
 // ── Exports ──────────────────────────────────────────────────────────────────
 
-module.exports = { PresenceEngine, PresenceState, ActivityState, DEFAULT_CONFIG }
+module.exports = { PresenceEngine, PresenceState, ActivityState, DEFAULT_CONFIG, assessCalibration }

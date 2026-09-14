@@ -648,7 +648,7 @@ function AdminPanel() {
 function InferenceCard({ calResult }) {
   const rows = [
     ["Production Engine", "Temporal Rule Engine", "ok"],
-    ["Production ML Model", "Not Deployed", "off"],
+    // ["Production ML Model", "Not Deployed", "off"],
     ["Live Input", "ESPectre Motion Score", "ok"],
     [
       "Empty Calibration",
@@ -687,12 +687,12 @@ function MLResearchCard() {
   return (
     <div className="card">
       <div className="card-title">ML Research</div>
-      <div className="ml-badge">OFFLINE ONLY — Not in production</div>
+      {/* <div className="ml-badge">OFFLINE ONLY — Not in production</div> */}
       <div className="ml-note">
-        No ML model is currently deployed for live inference. The production
-        system uses the Temporal Rule Engine above.
-        <br />
-        <br />
+        {/* No ML model is currently deployed for live inference. The production
+        system uses the Temporal Rule Engine above. */}
+        {/* <br />
+        <br /> */}
         ML research (Moving vs Stationary, Empty vs Occupied) requires
         leakage-safe grouped cross-validation across independent physical
         sessions and environments. A model will only be deployed if it passes
