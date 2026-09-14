@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node server.js",
+    "dev:ui": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server.js",
@@ -13,7 +14,8 @@
     "argon2": "^0.41.1",
     "better-sqlite3": "^11.10.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.186.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

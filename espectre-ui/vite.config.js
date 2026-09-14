@@ -5,8 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true,
     proxy: {
       '/api': { target: process.env.BACKEND_URL || 'http://localhost:3000', changeOrigin: true },
+      '/admin': { target: process.env.BACKEND_URL || 'http://localhost:3000', changeOrigin: true },
     },
   },
 })

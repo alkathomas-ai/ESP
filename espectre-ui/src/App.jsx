@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import "./App.css";
+const PresenceScene = lazy(() => import("./PresenceScene"));
 
 const MAX_HISTORY = 60;
 
@@ -186,54 +187,44 @@ function StatCard({ label, value, sub }) {
 }
 
 function ScoreChart({ history, threshold }) {
-  const W = 600,
-    H = 100,
-    P = 6;
-  if (history.length < 2)
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} className="chart">
-        <text
-          x={W / 2}
-          y={H / 2}
-          textAnchor="middle"
-          fill="var(--text3)"
-          fontSize="12"
-        >
-          Waiting for data…
-        </text>
-      </svg>
-    );
-  const xs = history.map((_, i) => P + (i / (MAX_HISTORY - 1)) * (W - P * 2));
-  const ys = history.map((v) => H - P - v * (H - P * 2));
-  const pts = xs.map((x, i) => `${x},${ys[i]}`).join(" ");
-  const fill = `${xs[0]},${H - P} ${pts} ${xs[xs.length - 1]},${H - P}`;
-  const ty = H - P - threshold * (H - P * 2);
+  const W = 800, H = 150;
+  const left = 42, right = 780, top = 14, bottom = 122;
+  const y = value => bottom - Math.max(0, Math.min(1, value)) * (bottom - top);
+  const points = history.map((value, index) => ({
+    x: left + ((MAX_HISTORY - history.length + index) / (MAX_HISTORY - 1)) * (right - left),
+    y: y(value),
+  }));
+  const line = points.map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`).join(" ");
+  const last = points[points.length - 1];
+  const area = points.length > 1 ? `${line} L ${last.x} ${bottom} L ${points[0].x} ${bottom} Z` : "";
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity=".3" />
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity=".02" />
-        </linearGradient>
-      </defs>
-      <line
-        x1={P}
-        y1={ty}
-        x2={W - P}
-        y2={ty}
-        stroke="var(--amber)"
-        strokeWidth="1.5"
-        strokeDasharray="4 3"
-      />
-      <polygon points={fill} fill="url(#g)" />
-      <polyline
-        points={pts}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="signal-plot">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Motion scores for the last ${history.length} readings. Threshold ${threshold.toFixed(2)}.`}>
+        <defs>
+          <linearGradient id="signal-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent2)" stopOpacity=".25" />
+            <stop offset="100%" stopColor="var(--accent2)" stopOpacity=".015" />
+          </linearGradient>
+        </defs>
+        {[1, 0.75, 0.5, 0.25, 0].map(value => (
+          <g key={value}>
+            <line className="signal-grid" x1={left} x2={right} y1={y(value)} y2={y(value)} />
+            <text className="signal-axis" x={left - 12} y={y(value) + 4} textAnchor="end">{value.toFixed(2)}</text>
+          </g>
+        ))}
+        {area && <path d={area} fill="url(#signal-area)" />}
+        <line className="signal-threshold" x1={left} x2={right} y1={y(threshold)} y2={y(threshold)} />
+        {points.length > 1 && <path className="signal-line" d={line} />}
+        {last && <g>
+          <circle cx={last.x} cy={last.y} r="9" fill="var(--accent2)" opacity=".15" />
+          <circle className="signal-tip" cx={last.x} cy={last.y} r="4" />
+        </g>}
+        {!last && <text className="signal-empty" x={(left + right) / 2} y="72" textAnchor="middle">Waiting for signal data</text>}
+        <text className="signal-axis" x={left} y="144">{MAX_HISTORY - 1} readings ago</text>
+        <text className="signal-axis" x={(left + right) / 2} y="144" textAnchor="middle">30 readings ago</text>
+        <text className="signal-axis" x={right} y="144" textAnchor="end">Latest</text>
+      </svg>
+    </div>
   );
 }
 
@@ -514,7 +505,7 @@ function AdminPanel() {
 
   if (!authed) return (
     <div className="adm-login-wrap">
-      <div className="card" style={{ maxWidth: 360 }}>
+      <div className="card">
         <div className="card-title">Administrator Login</div>
         <div className="field" style={{ marginBottom: 12 }}>
           <label>Password</label>
@@ -531,8 +522,7 @@ function AdminPanel() {
 
   return (
     <>
-      <div className="page-header">
-        <span className="page-title">Device Administration</span>
+      <div className="admin-session-actions">
         <button className="btn btn-secondary btn-sm" onClick={logout}>Sign out</button>
       </div>
 
@@ -862,18 +852,6 @@ export default function App() {
 
         </nav>
         <div className="sidebar-footer">
-          <div className="footer-actions">
-            <button className="icon-btn" onClick={fetchAll} title="Refresh">
-              ↻
-            </button>
-            <button
-              className="icon-btn"
-              onClick={toggleTheme}
-              title="Toggle theme"
-            >
-              {theme === "dark" ? "☀" : "☾"}
-            </button>
-          </div>
           <div className="conn-status">
             <span className={`dot ${connected ? "dot-ok" : "dot-err"}`} />
             <span>{connected ? "Device connected" : "Disconnected"}</span>
@@ -886,18 +864,32 @@ export default function App() {
       </aside>
 
       <main className="main-panel">
+        <header className="page-header">
+          <div className="page-heading">
+            <h1 className="page-title">{{
+              overview: "Presence Dashboard",
+              calibration: "Empty-Room Calibration",
+              inference: "Inference Transparency",
+              diagnostics: "Diagnostics",
+              admin: "Device Administration",
+            }[activeTab]}</h1>
+            {activeTab === "overview" && <span className="page-sub">
+              {device?.name ?? "ESPectre"} · {device?.chip ?? "ESP32-S3"}
+            </span>}
+          </div>
+          <div className="header-actions">
+            <button className="icon-btn" onClick={fetchAll} title="Refresh" aria-label="Refresh device data">↻</button>
+            <button className="icon-btn" onClick={toggleTheme} title="Toggle theme"
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
+              {theme === "dark" ? "☀" : "☾"}
+            </button>
+          </div>
+        </header>
         {error && <div className="error-banner">⚠ {error}</div>}
 
         {/* ── Overview ── */}
         {activeTab === "overview" && (
           <>
-            <div className="page-header">
-              <span className="page-title">Presence Dashboard</span>
-              <span className="page-sub">
-                {device?.name ?? "ESPectre"} · {device?.chip ?? "ESP32-S3"}
-              </span>
-            </div>
-
             <div className="hero-grid">
               <div className="card">
                 <div className="card-title">Presence</div>
@@ -959,14 +951,27 @@ export default function App() {
             </div>
 
             <div className="card chart-card">
-              <div className="card-title">
-                Live Signal — Last {MAX_HISTORY} readings
+              <div className="signal-header">
+                <div>
+                  <div className="signal-eyebrow">MOTION TELEMETRY</div>
+                  <h2 className="signal-title">Live Signal</h2>
+                  <p className="signal-subtitle">A rolling view of the last {MAX_HISTORY} readings</p>
+                </div>
+                <span className={`signal-status ${sensorReady ? "is-live" : ""}`}>
+                  <span />{sensorReady ? "Live" : "Waiting for device"}
+                </span>
+              </div>
+              <div className="signal-summary">
+                <div className="signal-current">
+                  <span className="signal-number">{history.length ? history[history.length - 1].toFixed(3) : "—"}</span>
+                  <span className="signal-caption">Latest motion score</span>
+                </div>
+                <div className="signal-legend">
+                  <span><i className="signal-key" />Motion score</span>
+                  <span><i className="signal-key threshold" />Threshold {threshold.toFixed(2)}</span>
+                </div>
               </div>
               <ScoreChart history={history} threshold={threshold} />
-              <div className="chart-meta">
-                Threshold line in amber · Motion score in indigo · Smoothed in
-                cyan
-              </div>
               <div className="slider-row" style={{ marginTop: 8 }}>
                 <div className="slider-label">
                   <span>Motion threshold</span>
@@ -982,6 +987,10 @@ export default function App() {
                 />
               </div>
             </div>
+            <Suspense fallback={<div className="card">Loading presence view…</div>}>
+              <PresenceScene state={presenceState} ready={sensorReady} theme={theme}
+                activity={activity} motionScore={presence?.motion_score} sensorStatus={presence?.sensor_status} />
+            </Suspense>
 
             <div className="two-col">
               <div className="card">
@@ -1077,15 +1086,16 @@ export default function App() {
                 />
               </div>
             </div>
+            {/* <Suspense fallback={<div className="card">Loading presence view…</div>}>
+              <PresenceScene state={presenceState} ready={sensorReady} theme={theme}
+                activity={activity} motionScore={presence?.motion_score} sensorStatus={presence?.sensor_status} />
+            </Suspense> */}
           </>
         )}
 
         {/* ── Calibration ── */}
         {activeTab === "calibration" && (
           <>
-            <div className="page-header">
-              <span className="page-title">Empty-Room Calibration</span>
-            </div>
             <div className="card">
               <div className="card-title">Calibration Wizard</div>
               <CalibrationPanel sensorReady={sensorReady} />
@@ -1114,9 +1124,6 @@ export default function App() {
         {/* ── Inference ── */}
         {activeTab === "inference" && (
           <>
-            <div className="page-header">
-              <span className="page-title">Inference Transparency</span>
-            </div>
             <InferenceCard calResult={calResult} />
             <MLResearchCard />
           </>
@@ -1184,9 +1191,6 @@ export default function App() {
         {/* ── Diagnostics ── */}
         {activeTab === "diagnostics" && (
           <>
-            <div className="page-header">
-              <span className="page-title">Diagnostics</span>
-            </div>
             <div className="card">
               <div className="card-title">Firmware</div>
               <div className="btn-row" style={{ marginBottom: 12 }}>

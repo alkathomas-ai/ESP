@@ -39,7 +39,9 @@
 /* ── Shell ── */
 .shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
 }
@@ -47,7 +49,8 @@
 /* ── Sidebar ── */
 .sidebar {
   width: 220px;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   background: var(--bg2);
   border-right: 1px solid var(--border);
   display: flex;
@@ -96,7 +99,9 @@
   flex-direction: column;
   gap: 10px;
 }
-.footer-actions { display: flex; gap: 8px; }
+.header-actions { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.page-heading { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.admin-session-actions { display: flex; justify-content: flex-end; }
 .icon-btn {
   width: 32px; height: 32px;
   border-radius: 8px;
@@ -124,16 +129,20 @@
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior-y: contain;
   display: flex;
   flex-direction: column;
   gap: 20px;
   min-width: 0;
 }
 
+.main-panel > * { flex-shrink: 0; }
+
 /* ── Page header ── */
 .page-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
@@ -158,6 +167,7 @@
   border-radius: 14px;
   padding: 20px;
   box-shadow: var(--shadow);
+  /* width: 75%; */
 }
 .card-title {
   font-size: 11px;
@@ -286,9 +296,36 @@
 .stat-sub   { font-size: 11px; color: var(--text2); margin-top: 2px; }
 
 /* ── Chart ── */
-.chart-card { display: flex; flex-direction: column; gap: 10px; }
-.chart svg  { width: 100%; display: block; }
-.chart-meta { font-size: 11px; color: var(--text3); text-align: right; }
+.chart-card { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.signal-header, .signal-summary { display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; }
+.signal-eyebrow { color: var(--accent2); font-size: 10px; font-weight: 600; letter-spacing: .16em; }
+.signal-title { margin: 7px 0 5px; font-size: 21px; font-weight: 600; letter-spacing: -.035em; }
+.signal-subtitle { margin: 0; color: var(--text2); font-size: 12px; }
+.signal-status { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 20px; color: var(--text2); font-size: 11px; }
+.signal-status > span { width: 6px; height: 6px; border-radius: 50%; background: var(--text2); }
+.signal-status.is-live > span { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 12%, transparent); }
+.signal-current { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.signal-number { font-size: 34px; font-weight: 500; letter-spacing: -.05em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.signal-caption { font-size: 11px; color: var(--text2); }
+.signal-legend { display: flex; flex-wrap: wrap; gap: 18px; color: var(--text2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.signal-legend > span { display: inline-flex; align-items: center; gap: 7px; }
+.signal-key { width: 15px; border-top: 2px solid var(--accent2); }
+.signal-key.threshold { border-top: 2px dashed var(--amber); }
+.signal-plot { padding: 4px 8px 2px 0; border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 4%, var(--bg2)), var(--bg2)); }
+.signal-plot svg { display: block; width: 100%; height: auto; }
+.signal-grid { stroke: var(--border); stroke-opacity: .65; vector-effect: non-scaling-stroke; }
+.signal-axis { fill: var(--text2); font-size: 10px; font-variant-numeric: tabular-nums; }
+.signal-empty { fill: var(--text2); font-size: 13px; }
+.signal-threshold { stroke: var(--amber); stroke-width: 1; stroke-dasharray: 5 6; opacity: .8; vector-effect: non-scaling-stroke; }
+.signal-line { fill: none; stroke: var(--accent2); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.signal-tip { fill: var(--accent2); stroke: var(--bg2); stroke-width: 2; }
+.chart-card > .slider-row { border-top: 1px solid var(--border); padding-top: 10px; }
+.chart-card .signal-number { font-size: 28px; }
+@media (max-width: 600px) {
+  .signal-plot { overflow-x: auto; }
+  .signal-plot svg { min-width: 480px; }
+  .signal-number { font-size: 28px; }
+}
 
 /* ── People count ── */
 .people-card {
@@ -527,3 +564,67 @@ input[type=range] {
 .adm-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
 .adm-badge-on  { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
 .adm-badge-off { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+
+/* ── 3D presence ── */
+.presence-scene-card { overflow: hidden; }
+.presence-scene-tag { color: var(--text2); font-size: 11px; border: 1px solid var(--border); padding: 7px 11px; border-radius: 20px; }
+.presence-scene-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr); gap: 28px; align-items: center; margin-top: 20px; }
+.presence-scene-stage { position: relative; min-width: 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--accent) 15%, var(--bg2)), var(--bg2) 75%); }
+.presence-scene-canvas { height: 340px; width: 100%; }
+.presence-scene-canvas canvas { display: block; }
+.presence-scene-stage-label { position: absolute; left: 20px; bottom: 18px; color: var(--text2); font-size: 9px; letter-spacing: .18em; pointer-events: none; }
+.presence-scene-details { padding: 10px 0; }
+.presence-scene-state { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 600; letter-spacing: -.03em; }
+.presence-scene-state > span { width: 9px; height: 9px; border-radius: 50%; background: var(--presence-color); box-shadow: 0 0 0 5px color-mix(in srgb, var(--presence-color) 12%, transparent); flex-shrink: 0; }
+.presence-scene-details p { color: var(--text2); font-size: 13px; line-height: 1.7; }
+.presence-scene-state-list { display: flex; flex-direction: column; gap: 4px; margin: 22px 0; }
+.presence-scene-state-list > span { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid transparent; border-radius: 8px; font-size: 12px; color: var(--text2); }
+.presence-scene-state-list > .selected { color: var(--text); background: var(--bg3); border-color: var(--border); }
+.presence-scene-state-list > span > span { font-size: 11px; color: var(--text2); }
+.presence-scene-details .presence-scene-note { font-size: 11px; border-top: 1px solid var(--border); padding-top: 16px; margin-bottom: 0; }
+.presence-scene-fallback { position: absolute; inset: 0; display: grid; place-content: center; padding: 24px; background: var(--bg2); color: var(--text2); font-size: 13px; line-height: 1.8; text-align: center; }
+@media (max-width: 760px) {
+  .presence-scene-layout { grid-template-columns: 1fr; gap: 12px; }
+  .presence-scene-canvas { height: 280px; }
+}
+
+/* Refined architectural presence view */
+.presence-scene-card { padding: 24px; }
+.presence-scene-card .signal-eyebrow { color: var(--text2); }
+.presence-scene-layout { grid-template-columns: minmax(0, 2.5fr) minmax(230px, 1fr); gap: 26px; }
+.presence-scene-stage { background: radial-gradient(ellipse at 45% 35%, #f7f6f2, #e4e7e8); border-color: #d7dcdf; }
+.dark .presence-scene-stage { background: radial-gradient(ellipse at 45% 35%, #303741, #1b222b); border-color: #38414d; }
+.presence-scene-canvas { height: clamp(370px, 33vw, 470px); }
+.presence-scene-overlay { position: relative; z-index: 2; margin: -14px 18px 40px; padding: 16px 18px; border: 1px solid color-mix(in srgb, var(--border) 75%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--bg2) 82%, transparent); backdrop-filter: blur(16px); box-shadow: 0 8px 24px #00000008; }
+.presence-scene-overlay .presence-scene-state { font-size: 14px; letter-spacing: 0; }
+.presence-scene-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.presence-scene-metrics > div + div { border-left: 1px solid var(--border); padding-left: 16px; }
+.presence-scene-metrics dt { color: var(--text2); font-size: 10px; margin-bottom: 3px; }
+.presence-scene-metrics dd { color: var(--text); font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; text-transform: capitalize; overflow-wrap: anywhere; }
+.presence-device-label { position: absolute; transform: translate(-50%, -100%); pointer-events: none; padding: 5px 8px; border: 1px solid #c9d0d5; border-radius: 6px; color: #344553; background: #f8fafbe6; font-size: 10px; font-weight: 600; box-shadow: 0 3px 10px #00000008; white-space: nowrap; }
+.presence-device-label span { display: block; font-size: 8px; font-weight: 400; opacity: .75; }
+.dark .presence-device-label { color: #d1dae2; border-color: #4b5764; background: #293440e8; }
+.presence-scene-stage-label { font-size: 8px; letter-spacing: .1em; left: 18px; right: 18px; bottom: 14px; }
+.presence-scene-caption { color: var(--text2); font-size: 9px; letter-spacing: .15em; margin-bottom: 12px; }
+.presence-scene-details h3 { font-size: 22px; font-weight: 500; letter-spacing: -.035em; margin-bottom: 8px; }
+.presence-scene-state-list > span { justify-content: flex-start; align-items: center; padding: 11px 10px; transition: background .3s, border-color .3s, color .3s; }
+.presence-scene-state-list i { width: 5px; height: 5px; border-radius: 50%; background: var(--text2); opacity: .45; flex-shrink: 0; }
+.presence-scene-state-list .selected i { opacity: 1; background: #7a948c; }
+.presence-scene-state-list small { margin-left: auto; font-size: 9px; color: var(--text2); }
+.presence-scene-fallback { bottom: 175px; z-index: 1; }
+@media (max-width: 1050px) {
+  .presence-scene-layout { grid-template-columns: 1fr; }
+  .presence-scene-canvas { height: 390px; }
+  .presence-scene-state-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 16px 0; }
+}
+@media (max-width: 600px) {
+  .presence-scene-card { padding: 16px; }
+  .presence-scene-canvas { height: 330px; }
+  .presence-scene-overlay { margin-left: 10px; margin-right: 10px; padding: 12px; }
+  .presence-scene-metrics { gap: 6px; }
+  .presence-scene-metrics > div + div { padding-left: 8px; }
+  .presence-scene-state-list { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .presence-scene-state-list > span { transition: none; }
+}
